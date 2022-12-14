@@ -1,24 +1,34 @@
 My explorations of [[https://beta.openai.com/][openai api]] using babashka.
 
-It is doing it:
+It is doing it, which is sort of exiting:
 
 #+begin_src clojure
 (openai-edit
  {:model "code-davinci-edit-001"
-  :instruction "Remove redundant let"
-  :input (prn-str '(let [foo 10] (let [bar 11] (+ foo bar))))})
-
-(get *1 "text")
-
-"(let [foo 10] (+ foo 11))\n"
+  :instruction "Remove redundant let, preserve bindings from all let. Fix whitespace."
+  :input  (prn-str '(let [foo 10] (let [bar 11] (+ foo bar))))})
 #+end_src
 
-
+#+begin_src clojure
+(let [foo 10
+      bar 11]
+  (+ foo bar))
+#+end_src
 
 (Nbb also worked but their node client doesn't even have edits yet).
 
 You need to provid an api-key.
 
 I will play around with putting what openai provides into emacs.
+
+** goals
+
+- Completion and edit are separate modules, provide both
+- Provide a to define commands, the power comes from engeneering the prompt
+- Also make it easy to use the other models for text (org mode,
+  markdown mode)
+- Make different commands for separate use cases.
+  - capf for completion of next few words
+  - complete with region that is allowed to run a bit longer
 
 [[https://github.com/debanjum/codex-completion][codex-completion]] package is not up to date anymore.

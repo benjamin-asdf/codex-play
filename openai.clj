@@ -51,7 +51,7 @@
 
 (get *1 "text")
 
-=>
+#_
 (let [foo 10
       bar 11]
   (+ foo bar))
