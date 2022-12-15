@@ -31,7 +31,6 @@ I will play around with putting what openai provides into emacs.
   - capf for completion of next few words
   - complete with region that is allowed to run a bit longer
 
-
 ** other projects
 [[https://github.com/debanjum/codex-completion][
 codex-completion]] package is not up to date anymore.
