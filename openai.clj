@@ -7,8 +7,13 @@
    [babashka.curl :as curl]
    [cheshire.core :as json]))
 
-(def api-key (when (fs/exists? "token.gpg")
-             (str/trim (:out (shell/sh "gpg" "--decrypt" "token.gpg")))))
+(def api-key
+  (or
+   (when (fs/exists? "token.gpg")
+     (str/trim (:out (shell/sh "gpg" "--decrypt" "token.gpg"))))
+   (str/trim (:out (shell/sh "pass" "ben-open-ai")))))
+
+(def api {:edit "https://api.openai.com/v1/edits" :completion "https://api.openai.com/v1/completions"})
 
 (def api {:edit "https://api.openai.com/v1/edits" :completion "https://api.openai.com/v1/completions"})
 
@@ -26,12 +31,6 @@
   :prompt "curl https://api.openai.com/v1/completions \\\n-H \"Content-Type: application/json\" \\\n-H \"Authorization: Bearer YOUR_API_KEY\" \\\n-d '{\"model\": \"text-davinci-003\", \"prompt\": \"Say this is a test\", \"temperature\": 0, \"max_tokens\": 7}'
 
 ; an emacs lisp function that implements this api call"})
-
-
-
-
-
-
 
 
 
@@ -74,7 +73,26 @@
 
 (openai-edit
  {:model "code-davinci-edit-001"
-  :instruction "Use url-retrieve instead of the shell command"
-  :input
+  :instruction "Use destructing for the coords x and y"
+  :input  (prn-str
 
-  " (defun openai-predict (model prompt &optional temperature max-tokens)\n  (let ((json-object-type 'hash-table)\n        (json-array-type 'list)\n        (json-key-type 'string))\n    (json-read-from-string\n     (shell-command-to-string\n      (concat \"curl https://api.openai.com/v1/predict \\\n-H \\\"Content-Type: application/json\\\" \\\n-H \\\"Authorization: Bearer YOUR_API_KEY\\\" \\\n-d '{\\\"model\\\": \\\"\" model \"\\\", \\\"prompt\\\": \\\"\" prompt \"\\\", \\\"temperature\\\": \"\n             (if temperature (number-to-string temperature) \"0\")\n             \", \\\"max_tokens\\\": \"\n             (if max_tokens (number-to-string max-tokens) \"7\")\n             \"}'\")))))\n\n" })
+           '(defn
+              beacon->coverage
+              [[sensor beacon]]
+
+              (for
+                  [x
+                   (range
+                    (dec (first sensor))
+                    (inc (first sensor)))
+                   y
+                   (range
+                    (dec (second sensor))
+                    (inc (second sensor)))
+                   :let
+                   [d (distance sensor [x y])]
+                   :when
+                   (<= d (distance sensor beacon))]
+                  [x y]))
+
+)})
