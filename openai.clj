@@ -15,9 +15,8 @@
 
 (def api {:edit "https://api.openai.com/v1/edits" :completion "https://api.openai.com/v1/completions"})
 
-(def api {:edit "https://api.openai.com/v1/edits" :completion "https://api.openai.com/v1/completions"})
 
-(defn openai-completion [{:keys [model temperature max-tokens] :as opts}]
+(defn openai-completion [{:keys [model temperature] :as opts}]
   (-> (curl/post (api :completion)
                  {:headers {"Content-Type" "application/json"
                             "Authorization" (str "Bearer " api-key)}
@@ -31,11 +30,15 @@
   :prompt "curl https://api.openai.com/v1/completions \\\n-H \"Content-Type: application/json\" \\\n-H \"Authorization: Bearer YOUR_API_KEY\" \\\n-d '{\"model\": \"text-davinci-003\", \"prompt\": \"Say this is a test\", \"temperature\": 0, \"max_tokens\": 7}'
 
 ; an emacs lisp function that implements this api call"})
-
-
-
+(openai-completion
+ {:model "code-davinci-002"
+  :prompt ";; returns all points within a given manhatten distance\n(defn "})
+(openai-completion
+ {:model "text-davinci-003"
+  :prompt "The science of past biology is called"})
 
 ;; (openai-completion {:model "code-davinci-002" :prompt })
+
 
 
 
@@ -50,30 +53,30 @@
       (get "choices")
       (get 0)))
 
+
+
 (openai-edit
  {:model "text-davinci-edit-001"
   :instruction "Fix typos"
   :input "Monday is the first day of the wek"})
 
-{"text" "Monday is the first day of the week\n", "index" 0}
+{"text" "Monday is the first day of the week\n",
+ "index" 0}
 
 (openai-edit
  {:model "code-davinci-edit-001"
   :instruction "Remove redundant let, preserve bindings from all let. Fix whitespace."
   :input  (prn-str '(let [foo 10] (let [bar 11] (+ foo bar))))})
-(get *1 "text")
 
+(get *1 "text")
 #_
 
 (let [foo 10
       bar 11]
   (+ foo bar))
-
-
-
 (openai-edit
  {:model "code-davinci-edit-001"
-  :instruction "Use destructing for the coords x and y"
+  :instruction "Use destructing instead of saying first and second sensor."
   :input  (prn-str
 
            '(defn
@@ -96,3 +99,20 @@
                   [x y]))
 
 )})
+
+(openai-edit
+ {:model "code-davinci-edit-001"
+  :instruction "Emacs lisp. Supplante the rest of the args"
+  :input  (prn-str
+           '(defcustom openai-api-edit-persistent-message t))})
+
+{"text" "(defn beacon->coverage [[[sx sy] beacon]] (for [x (range (dec sx) (inc sx)) y (range (dec sy) (inc sy)) :let [d (distance [sx sy] [x y])] :when (<= d (distance [sx sy] beacon))] [x y]))\n", "index" 0}
+
+
+(openai-completion
+ {:model "code-cushman-001"
+  :prompt "(ns Y2022.day16\n  (:require [clojure.string :as str]))\n\n;; graph\n;; nodes\n(defn dfs [])\n\n"})
+
+
+
+{"text" "\n;;; day16.clj ends here", "index" 0, "logprobs" nil, "finish_reason" "stop"}
