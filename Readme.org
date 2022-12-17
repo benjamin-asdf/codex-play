@@ -1,5 +1,11 @@
+I hope we get a FOSS code gen api soon.
+I was impressed by the state of openai text and codegen, I want this
+in emacs.
+
 * emacs package wip
 
+- Get an api token at https://openai.com/api/ (after 3 months you'd
+  have to pay)
 - load file =openail.el=
 - Check =dev.el= for how I set it up right now for me, do something similaar.
 - The best command is =openai-api-davinci-edit=. I asks you for an
