@@ -1,6 +1,6 @@
 * emacs package wip
 
-
+- load file =openail.el=
 - Check =dev.el= for how I set it up right now for me, do something similaar.
 - The best command is =openai-api-davinci-edit=. I asks you for an
   instructions then sends the current buffer input + the instruction.
