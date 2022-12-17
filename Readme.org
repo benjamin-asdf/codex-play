@@ -1,3 +1,18 @@
+* emacs package wip
+
+
+- Check =dev.el= for how I set it up right now for me, do something similaar.
+- The best command is =openai-api-davinci-edit=. I asks you for an
+  instructions then sends the current buffer input + the instruction.
+  Narrow your current buffer!
+- It was already quite good at stuff like
+  I narrow my buffer to defun
+  I tell it things like "add a docstring to the function".
+- I wonder if you could spot which parts of openail.el look generated.
+
+
+* More notes
+
 My explorations of [[https://beta.openai.com/][openai api]] using babashka.
 
 It is doing it, which is sort of exiting:
