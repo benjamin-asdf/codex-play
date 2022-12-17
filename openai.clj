@@ -39,9 +39,6 @@
 
 ;; (openai-completion {:model "code-davinci-002" :prompt })
 
-
-
-
 (defn openai-edit [{:keys [model temperature]
                     :or {temperature 0}
                     :as opts}]
@@ -52,8 +49,6 @@
       :body json/decode
       (get "choices")
       (get 0)))
-
-
 
 (openai-edit
  {:model "text-davinci-edit-001"
