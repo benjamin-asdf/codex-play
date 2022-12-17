@@ -57,7 +57,7 @@ The default is `t`."
 
 (defvar-local openai-api-edit-target-buffer nil)
 
-(defvar-local openai-api-edit-response-buffer nil)
+;; (defvar-local openai-api-edit-response-buffer nil)
 
 (defvar openai-api-edit-instructions-history nil)
 
@@ -113,7 +113,6 @@ ENDPOINT is the API endpoint to use."
 ;; how many chars should be cutoff
 ;; how often do we ask
 ;; separate commands for different use cases
-
 
 (defun openai-api-capf ()
   (let* ((beg (min
@@ -197,7 +196,9 @@ ENDPOINT is the API endpoint to use."
                  (openai-api-choices))))))))
 
 (defun openai-api-davinci ()
-  "Most capable Codex model.
+  "Ask openai forri completions.
+The model is quote:
+The Most capable Codex model.
 Particularly good at translating natural language to code."
   (interactive)
   (let* ((beg
@@ -221,58 +222,6 @@ Particularly good at translating natural language to code."
          (cl-remove-duplicates  (mapcan
                                  (lambda (s) (split-string s "\n\n"))
                                  (openai-api-choices)))))))))
-
-(defvar-keymap openai-api-edit-instructions-mode-map
-  :doc "Keymap used in `openai-api-edit-instructions-mode`"
-  "C-c C-c" #'openai-api-davinci-edit-send-it)
-
-;; (defvar openai-api-edit-instructions-history nil)
-;; (defun openai-api-edit-instructions-hist-capf ()
-;;   (when ))
-
-(define-minor-mode openai-api-edit-instructions-mode
-  "Minor mode for
-editing instructions of language model
-
-\\{openai-api-edit-instructions-mode-map}"
-  :global nil
-  (use-local-map openai-api-edit-instructions-mode-map))
-
-(defvar-keymap openai-api-edit-response-mode-map
-  :doc "Keymap used in `openai-api-edit-response-mode`"
-  "C-c C-c" #'openai-api-edit-response-finnish)
-
-(define-minor-mode openai-api-edit-response-mode
-  "Minor mode for
-editing instructions of language model
-
-\\{openai-api-edit-response-mode-map}"
-  :global nil
-  (use-local-map openai-api-edit-response-mode-map))
-
-(defun openai-api-davinci-edit ()
-  "Open a buffer for editing instructions for code-davinci-edit-001."
-  (interactive)
-  (if (string= (buffer-name)
-               openai-api-edit-buffer)
-      (message "Already in instructions buffer")
-    (let ((target-buff
-           (current-buffer)))
-      (select-window (or (get-buffer-window openai-api-edit-buffer)
-                         (let ((dir (if (window-parameter nil 'window-side)
-                                        'bottom
-                                      'down)))
-                           (setq reb-window-config (current-window-configuration))
-                           (display-buffer (get-buffer-create openai-api-edit-buffer)
-                                           `((display-buffer-in-direction)
-                                             (direction . ,dir)
-                                             (dedicated . t)
-                                             (window-height . fit-window-to-buffer))))))
-      (openai-api-edit-instructions-mode 1)
-      (when openai-api-edit-persistent-message
-        (setq header-line-format (substitute-command-keys "Instructions for code-davinci-edit-001. Use \\[openai-api-davinci-edit-send-it]. Empty prompt is similar to completion")))
-      (with-current-buffer openai-api-edit-buffer
-        (setq openai-api-edit-target-buffer target-buff)))))
 
 (defun openai-api-edit-response-finnish ()
   "Finish editing and insert response into the target buffer."
@@ -311,13 +260,14 @@ Do nothing if `cider-show-eval-spinner' is nil."
       (spinner-start cider-eval-spinner-type nil
                      cider-eval-spinner-delay))))
 
-
-(defcustom openai-api-eval-spinner-type 'vertical-breathing
+(defcustom openai-api-eval-spinner-type
+  ["·  " "·· " "···"]
   "Appearance of the instruction edit spinner.
 
-Value is a symbol.  The possible values are the symbols in the
-`spinner-types' variable."
-  :type 'symbol
+See `spinner-types' variable."
+  :type '(choice (vector :tag "Custom")
+                 (symbol :tag "Predefined" :value 'vertical-breathing)
+                 (list :tag "List"))
   :group 'openai-api)
 
 (defcustom openai-api-show-eval-spinner t
@@ -382,100 +332,79 @@ EVAL-BUFFER is the buffer where the spinner was started."
                         buffs)
                        (lambda (a b) (> (car a) (car b)))))))
 
-;; (defun openai-api-davinci-edit-send-it ()
-;;   "Retrieve a code edit suggestion from the OpenAI API and display it to the user.
-;; The suggestion is generated based on the current contents of `openai-api-edit-target-buffer`
-;; and the instructions in `openai-api-edit-buffer`. The response is displayed in a new buffer
-;; called '*code-edit-response*', and can be inserted into `openai-api-edit-target-buffer` by
-;; executing `openai-api-edit-response-finnish`."
-;;   (interactive)
-;;   (if-let* ((instructions-buffer (get-buffer openai-api-edit-buffer))
-;;             (instruction (with-current-buffer instructions-buffer (buffer-string)))
-;;             (target-buff (buffer-local-value 'openai-api-edit-target-buffer instructions-buffer)))
-;;       (let*
-;;           ((resp-buffer (openai-api-resp-buffer instructions-buffer))
-;;            (input
-;;             (let ((latest (opanai-api-latest-used-buffer (list resp-buffer target-buff))))
-;;               (with-current-buffer latest (buffer-string))
-;;               ;; (if (eq latest target-buff)
-;;               ;;     ;; the range we say, currently I am doing everything
-;;               ;;     )
-;;               )))
-;;         (progn
-;;           (unless (string-empty-p instruction)
-;;             (add-to-history 'openai-api-edit-instructions-history instruction))
-;;           (openai-api-spinner-start instructions-buffer)
-;;           (openai-api-retrieve
-;;            `((model . "code-davinci-edit-001")
-;;              (temperature . 0)
-;;              (input . ,input)
-;;              (instruction . ,instruction))
-;;            (lambda (state)
-;;              (unwind-protect
-;;                  (if (plist-get state :error)
-;;                      (progn (pop-to-buffer (current-buffer))
-;;                             (error "Error when sending edit instructions: %s" (plist-get state :error-message)))
-;;                    (let ((response (openai-api-choices)))
-;;                      (with-current-buffer
-;;                          resp-buffer
-;;                        (setf openai-api-edit-target-buffer target-buff)
-;;                        (let ((inhibit-read-only t))
-;;                          (erase-buffer)
-;;                          (dolist (choice response)
-;;                            (insert (lispy--balance choice)))
-;;                          (funcall (with-current-buffer openai-api-edit-target-buffer major-mode)))
-;;                        (pop-to-buffer (current-buffer)))))
-;;                (with-current-buffer instructions-buffer
-;;                  (when spinner-current (spinner-stop)))))
-;;            nil
-;;            :edit)))
-;;     (user-error (substitute-command-keys "No davinci edit in progress, use \\[openai-api-davinci-edit]"))))
+(defun openai-api-edit-resp-buffer-p (buffer)
+  (with-current-buffer buffer openai-api-edit-target-buffer))
 
-(defun openai-api-davinci-edit-send-it ()
-  "Retrieve a code edit suggestion from the OpenAI API and display it to the user.
-The suggestion is generated based on the current contents of `openai-api-edit-target-buffer`
-and the instructions in `openai-api-edit-buffer`. The response is displayed in a new buffer
-called '*code-edit-response*', and can be inserted into `openai-api-edit-target-buffer` by
-executing `openai-api-edit-response-finnish`."
-  (interactive)
-  (if-let* ((instructions-buffer (get-buffer openai-api-edit-buffer))
-            (instruction (with-current-buffer instructions-buffer (buffer-string)))
-            (target-buff (buffer-local-value 'openai-api-edit-target-buffer instructions-buffer)))
-      (let*
-          ((resp-buffer (openai-api-resp-buffer instructions-buffer))
-           (input
-            (let ((latest (opanai-api-latest-used-buffer (list resp-buffer target-buff))))
-              (with-current-buffer latest (buffer-string))
-              ;; (if (eq latest target-buff)
-              ;;     ;; the range we say, currently I am doing everything
-              ;;     )
-              )))
-        (progn
-          (unless (string-empty-p instruction)
-            (add-to-history 'openai-api-edit-instructions-history instruction))
-          (openai-api-spinner-start instructions-buffer)
-          (openai-api-retrieve
-           `((model . "code-davinci-edit-001")
-             (temperature . 0)
-             (input . ,input)
-             (instruction . ,instruction))
-           (lambda (state)
-             (unwind-protect
-                 (if (plist-get state :error)
-                     (progn (pop-to-buffer (current-buffer))
-                            (error "Error when sending edit instructions: %s" (plist-get state :error-message)))
-                   (let ((response (openai-api-choices)))
-                     (with-current-buffer
-                         resp-buffer
-                       (setf openai-api-edit-target-buffer target-buff)
-                       (let ((inhibit-read-only t))
-                         (erase-buffer)
-                         (dolist (choice response)
-                           (insert (lispy--balance choice)))
-                         (funcall (with-current-buffer openai-api-edit-target-buffer major-mode)))
-                       (pop-to-buffer (current-buffer)))))
-               (with-current-buffer instructions-buffer
-                 (when spinner-current (spinner-stop)))))
-           nil
-           :edit)))
-    (user-error (substitute-command-keys "No davinci edit in progress, use \\[openai-api-davinci-edit]"))))
+;; maybe make you select buffer with prefix command
+
+
+(defun openai-api-davinci-edit (&optional instruction target-buffer)
+  "Send INSTRUCTION to OpenAI API.
+
+INSTRUCTION is a string.
+
+TARGET-BUFFER is a buffer.
+
+The response is displayed in a buffer named
+*openai-edit-TARGET-BUFFER-NAME*."
+  (interactive
+   (list
+    (read-from-minibuffer
+     "Instruction: "
+     nil
+     nil
+     nil
+     'openai-api-edit-instructions-history
+     (car openai-api-edit-instructions-history))
+    (or
+     openai-api-edit-target-buffer
+     (current-buffer)
+     ;; (get-buffer-create (read-buffer "Target: "))
+     )))
+  (let* ((called-from-resp-buffer
+          (openai-api-edit-resp-buffer-p (current-buffer)))
+         (resp-buffer
+          (cond
+           (called-from-resp-buffer
+            (current-buffer))
+           (t (generate-new-buffer
+               (concat "*openai-edit-"
+                       (buffer-name target-buffer) "*")))))
+         ;; maybe to do a region select thing
+         ;; assume user knows how to narrow region
+         (input
+          (with-current-buffer
+              (if called-from-resp-buffer
+                  (current-buffer)
+                target-buffer)
+            (buffer-string))))
+    (with-current-buffer resp-buffer
+      (openai-api-spinner-start resp-buffer)
+      (openai-api-retrieve
+       `((model . "code-davinci-edit-001")
+         (temperature . 0)
+         (input . ,input)
+         (instruction . ,instruction))
+       (lambda (state)
+         (unwind-protect
+             (if (plist-get state :error)
+                 (progn (pop-to-buffer (current-buffer))
+                        (error "Error when sending edit instructions: %s" (plist-get state :error-message)))
+               (let ((response (openai-api-choices)))
+                 (with-current-buffer
+                     resp-buffer
+                   (let ((inhibit-read-only t))
+                     (erase-buffer)
+                     (dolist (choice response)
+                       (insert
+                        (lispy--balance choice)))
+                     (funcall
+                      (with-current-buffer target-buffer major-mode)))
+                   (setf openai-api-edit-target-buffer target-buffer)
+                   (pop-to-buffer (current-buffer)))))
+           (with-current-buffer
+               resp-buffer
+             (when spinner-current
+               (spinner-stop)))))
+       nil
+       :edit))))
