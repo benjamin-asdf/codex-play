@@ -1,13 +1,5 @@
 ;; -*- lexical-binding: t; -*-
 
-;; this package provides bindings for openai apis
-;; edit
-;; completions
-
-;; use auth source
-
-;; -*- lexical-binding: t; -*-
-
 ;;; Commentary:
 
 ;; This package provides bindings for openai apis
@@ -51,12 +43,12 @@ The default is `t`."
                           :completion "https://api.openai.com/v1/completions"))
 
 (defcustom openai-api-eval-spinner-type
-  ["·  " "·· " "···"]
+  'progress-bar-filled
   "Appearance of the instruction edit spinner.
 
 See `spinner-types' variable."
   :type '(choice (vector :tag "Custom")
-                 (symbol :tag "Predefined" :value 'vertical-breathing)
+                 (symbol :tag "Predefined" :value 'progress-bar-filled)
                  (list :tag "List"))
   :group 'openai-api)
 
@@ -76,6 +68,58 @@ See `spinner-types' variable."
 (defvar-local openai-api-edit-target-buffer nil)
 
 (defvar openai-api-edit-instructions-history nil)
+
+(defcustom openai-api-balance-parens-fn
+  (if (fboundp 'lispy--balance) #'lispy--balance
+    #'openai-api-balance-parens)
+  "Function to balance parens.")
+
+(defvar openai-api-edit-models
+  '((code-davinci . "code-davinci-edit-001")
+    (text-davinci . "text-davinci-edit-001")))
+
+(defvar openai-api-completion-models
+  '((text-davinci . "text-davinci-003")))
+
+(defun openai-api-balance-parens (str)
+  (let ((parens-count 0)
+	(brackets-count 0)
+	(braces-count 0)
+	(new-str ""))
+    (dolist (char (string-to-list str))
+      (cond ((eq char ?\()
+	     (setq parens-count (1+ parens-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    ((eq char ?\))
+	     (setq parens-count (1- parens-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    ((eq char ?\[)
+	     (setq brackets-count (1+ brackets-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    ((eq char ?\])
+	     (setq brackets-count (1- brackets-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    ((eq char ?\{)
+	     (setq braces-count (1+ braces-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    ((eq char ?\})
+	     (setq braces-count (1- braces-count))
+	     (setq new-str (concat new-str (char-to-string char))))
+	    (t
+	     (setq new-str (concat new-str (char-to-string char))))))
+    (while (> parens-count 0)
+      (setq new-str (concat new-str ")"))
+      (setq parens-count (1- parens-count)))
+    (while (< parens-count 0)
+      (setq new-str (concat "(" new-str))
+      (setq parens-count (1+ parens-count)))
+    (while (> brackets-count 0)
+      (setq new-str (concat new-str "]"))
+      (setq brackets-count (1- brackets-count)))
+    (while (> braces-count 0)
+      (setq new-str (concat new-str "}"))
+      (setq braces-count (1- braces-count)))
+    new-str))
 
 (defun opanai-api-split-words (string)
   "Split STRING into a list of substrings, each containing one more word."
@@ -117,70 +161,53 @@ ENDPOINT is the API endpoint to use."
   "Retrieve DATA from the openai API.
 
 ENDPOINT is the API endpoint to use."
-  (let ((url-request-method "POST")
-        (url-request-extra-headers `(("Content-Type" . "application/json")
-                                     ("Authorization" . ,(concat
-                                                          "Bearer "
-                                                          openai-api-key))))
-        (url-request-data (json-encode data)))
-    (url-retrieve-synchronously
-     (plist-get openai-api-urls (or endpoint :completion)))))
+  (let*
+      ((url-request-method "POST")
+       (url-request-extra-headers `(("Content-Type" . "application/json")
+                                    ("Authorization" . ,(concat
+                                                         "Bearer "
+                                                         openai-api-key))))
+       (endpoint
+        (plist-get
+         openai-api-urls
+         (or (assoc-default 'endpoint data)
+             (let ((model (assoc-default 'model data)))
+               (cond
+                ((rassoc model openai-api-completion-models) :completion)
+                ((rassoc model openai-api-edit-models) :edit)
+                (t  :completion))))))
+       (data (assq-delete-all :endpoint data))
+       (url-request-data (json-encode data)))
+    (url-retrieve-synchronously endpoint)))
+
+
+;; each stragie is a function of input ->
+;; list of requests to make
+
+;; (defvar openai-api-stragies
+;;   `((cushman-small .
+;;                    (lambda (params)
+;;                      (list
+;;                       `((model . "code-cushman-001")
+;;                         (max_tokens . 14)
+;;                         (temperature . 0)
+;;                         (prompt . ,(plist-get parms :input)))))))
+;;   )
+
+;; sync.. ?
+
+(defun openai-api-sync (strategies)
+  (cl-loop
+   for strat in strategies
+   append (with-current-buffer (openai-api-retrieve-sync strat)
+            ;; (pop-to-buffer (current-buffer))
+            (mapcar openai-api-balance-parens-fn (openai-api-choices)))))
+
 
 ;; how many chars should be cutoff
 ;; how often do we ask
 ;; separate commands for different use cases
 
-(defun openai-api-capf ()
-  (let* ((beg (min
-               (save-excursion
-                 (backward-paragraph 1)
-
-                 (point))
-               (save-excursion
-                 (beginning-of-defun)
-                 (point))))
-         (end (point))
-         (prompt (buffer-substring beg end))
-         ;; (completions '())
-         ;; (_
-         ;;  (openai-api-retrieve
-         ;;   `((model . "text-davinci-003")
-         ;;     (max_tokens . 14)
-         ;;     (temperature . 0)
-         ;;     (prompt . ,prompt))
-         ;;   (lambda (_status)
-         ;;     (setf completions (openai-api-choices)))))
-         )
-    (list
-     end
-     end
-     (completion-table-dynamic
-      (lambda (_)
-        (with-current-buffer
-            (openai-api-retrieve-sync
-             ;; `((model . "text-davinci-003")
-             ;;   (max_tokens . 14)
-             ;;   (temperature . 0)
-             ;;   (prompt . ,prompt))
-             `((model . "code-cushman-001")
-               (max_tokens . 14)
-               (temperature . 0)
-               (prompt . ,prompt)))
-          (mapcan
-           #'opanai-api-split-words
-           (openai-api-choices)))))
-     ;; (completion-table-dynamic
-     ;;  (lambda (&rest _)
-     ;;    completions))
-     )))
-
-
-;; (add-hook 'completion-at-point-functions #'openai-api-capf nil t)
-;; (remove-hook 'completion-at-point-functions #'openai-api-capf  t)
-
-;; make a consult one
-;; with -- paradigm for temparature
-;; or feed async stuff
 
 ;; retry 3-5 times
 ;; take the ones with "stop"
@@ -206,16 +233,46 @@ ENDPOINT is the API endpoint to use."
              (max_tokens . 30)
              (temperature . 0)
              (prompt . ,prompt)))
-        (mapcar #'lispy--balance
+        (mapcar openai-api-balance-parens-fn
                 (mapcan
                  #'opanai-api-split-words
                  (openai-api-choices))))))))
 
-(defun openai-api-davinci ()
-  "Ask openai forri completions.
-The model is quote:
-The Most capable Codex model.
-Particularly good at translating natural language to code."
+(defun openai-api-buffer-backwards-dwim ()
+  (if
+      (region-active-p
+       (buffer-substring
+        (region-beginning)
+        (region-end)))
+      (let* ((beg (save-excursion
+                    (cl-loop for i from (point) downto (1+ (point-min))
+                             do (forward-char -1)
+                             finally return (point))))
+             (end (point))
+             (input))
+        (buffer-substring beg end))))
+
+(defun openai-api-completion-completing-read-1 (strategies)
+  (insert
+   (completing-read
+    "AI completions: "
+    (openai-api-sync strategies))))
+
+(defun openai-api-complete-text-small ()
+  (interactive)
+  (openai-api-completion-completing-read-1
+   (list
+    `((model . ,(assoc-default
+                 'text-davinci
+                 openai-api-completion-models))
+      (prompt . ,(openai-api-buffer-backwards))
+      (max_tokens . 100)
+      (temperature . 0)
+      (top_p . 1)
+      (frequency_penalty . 0)
+      (presence_penalty . 0)))))
+
+(defun openai-api-completion-completing-read ()
   (interactive)
   (let* ((beg
           (save-excursion
@@ -234,10 +291,22 @@ Particularly good at translating natural language to code."
              (temperature . 0)
              (prompt . ,prompt)))
         (mapcar
-         #'lispy--balance
+         openai-api-balance-parens-fn
          (cl-remove-duplicates  (mapcan
                                  (lambda (s) (split-string s "\n\n"))
                                  (openai-api-choices)))))))))
+
+(defun openai-api-complete-code-thoroughly ()
+  "Ask openai for completions.
+The model is quote:
+The Most capable Codex model.
+Particularly good at translating natural language to code."
+  (interactive)
+  (openai-api-completion-completing-read-1
+   `((model .  "code-davinci-002")
+     (max_tokens . ,(* 4 256))
+     (temperature . 0)
+     (prompt . ,(openai-api-buffer-backwards)))))
 
 (defun openai-api-edit-response-finnish ()
   "Finish editing and insert response into the target buffer."
@@ -255,38 +324,8 @@ Do nothing if `openai-api-show-eval-spinner' is nil."
       (spinner-start openai-api-eval-spinner-type nil
                      openai-api-eval-spinner-delay))))
 
-(defun cider-eval-spinner (eval-buffer response)
-  "Handle RESPONSE stopping the spinner.
-EVAL-BUFFER is the buffer where the spinner was started."
-  ;; buffer still exists and
-  ;; we've got status "done" from nrepl
-  ;; stop the spinner
-  (when (and (buffer-live-p eval-buffer)
-             (let ((status (nrepl-dict-get response "status")))
-               (or (member "done" status)
-                   (member "eval-error" status)
-                   (member "error" status))))
-    (with-current-buffer eval-buffer
-      (when spinner-current (spinner-stop)))))
-
-
-;; instruct buff -> resp buff
-;; say "finish" in the instruct buff
-;; or just kill you stuff
-
-;; actually.. the whole instructions buff could be completing read
-;; then the spinner in either the resp buffer or the target buff
-
 ;; and then we can try to merge the resp and the target buffer
 ;; with options to add to top or bottom, or try the merge
-
-(defun openai-api-resp-buffer (instruct-bufffer)
-  (with-current-buffer instruct-bufffer
-    (or openai-api-edit-response-buffer
-        (setf openai-api-edit-response-buffer
-              (generate-new-buffer
-               (concat "*openai-edit-"
-                       (buffer-name openai-api-edit-target-buffer) "*"))))))
 
 (defun opanai-api-latest-used-buffer (buffs)
   (car
@@ -304,8 +343,16 @@ EVAL-BUFFER is the buffer where the spinner was started."
 
 ;; maybe make you select buffer with prefix command
 
+(defun openai-api-read-instruction ()
+  (read-from-minibuffer
+   "Instruction: "
+   nil
+   nil
+   nil
+   'openai-api-edit-instructions-history
+   (car openai-api-edit-instructions-history)))
 
-(defun openai-api-davinci-edit (&optional instruction target-buffer)
+(defun openai-api-davinci-edit (&optional instruction target-buffer model)
   "Send INSTRUCTION to OpenAI API.
 
 INSTRUCTION is a string.
@@ -314,59 +361,59 @@ TARGET-BUFFER is a buffer.
 
 The response is displayed in a buffer named
 *openai-edit-TARGET-BUFFER-NAME*."
-  (interactive
-   (list
-    (read-from-minibuffer
-     "Instruction: "
-     nil
-     nil
-     nil
-     'openai-api-edit-instructions-history
-     (car openai-api-edit-instructions-history))
-    (or
-     openai-api-edit-target-buffer
-     (current-buffer)
-     ;; (get-buffer-create (read-buffer "Target: "))
-     )))
-  (let* ((called-from-resp-buffer
-          (openai-api-edit-resp-buffer-p (current-buffer)))
-         (resp-buffer
-          (cond
-           (called-from-resp-buffer
-            (current-buffer))
-           (t (generate-new-buffer
-               (concat "*openai-edit-"
-                       (buffer-name target-buffer) "*")))))
+  (interactive (list
+                (openai-api-read-instruction)
+                (or openai-api-edit-target-buffer
+                    (current-buffer)
+                    ;; (get-buffer-create (read-buffer "Target: "))
+                    )))
+  (let* ((model (assoc-default
+                 (or model 'code-davinci)
+                 openai-api-edit-models))
+         (called-from-resp-buffer (openai-api-edit-resp-buffer-p
+                                   (current-buffer)))
+         (resp-buffer (cond (called-from-resp-buffer
+                             (current-buffer))
+                            (t
+                             (generate-new-buffer (concat "*openai-edit-" (buffer-name target-buffer) "*")))))
          ;; maybe to do a region select thing
          ;; assume user knows how to narrow region
-         (input
-          (with-current-buffer
-              (if called-from-resp-buffer
-                  (current-buffer)
-                target-buffer)
-            (buffer-string))))
+         (input (with-current-buffer
+                    (if called-from-resp-buffer
+                        (current-buffer)
+                      target-buffer)
+                  (buffer-string))))
     (with-current-buffer resp-buffer
       (openai-api-spinner-start resp-buffer)
+      (pop-to-buffer (current-buffer))
       (openai-api-retrieve
-       `((model . "code-davinci-edit-001")
+       `((model . ,model)
          (temperature . 0)
          (input . ,input)
          (instruction . ,instruction))
        (lambda (state)
          (unwind-protect
              (if (plist-get state :error)
-                 (progn (pop-to-buffer (current-buffer))
-                        (error "Error when sending edit instructions: %s" (plist-get state :error-message)))
+                 (progn
+                   (pop-to-buffer
+                    (current-buffer))
+                   (error
+                    "Error when sending edit instructions: %s"
+                    (plist-get state :error-message)))
                (let ((response (openai-api-choices)))
                  (with-current-buffer
                      resp-buffer
                    (let ((inhibit-read-only t))
                      (erase-buffer)
-                     (dolist (choice response)
-                       (insert
-                        (lispy--balance choice)))
+                     (dolist (choice
+                              (mapcar
+                               openai-api-balance-parens-fn
+                               response))
+                       (insert choice))
                      (funcall
-                      (with-current-buffer target-buffer major-mode)))
+                      (with-current-buffer
+                          target-buffer
+                        major-mode)))
                    (setf openai-api-edit-target-buffer target-buffer)
                    (pop-to-buffer (current-buffer)))))
            (with-current-buffer
@@ -375,3 +422,9 @@ The response is displayed in a buffer named
                (spinner-stop)))))
        nil
        :edit))))
+
+(defun openai-api-edit-text ()
+  "Use davinci for edit."
+  (interactive)
+  (openai-api-davinci-edit
+   (openai-api-read-instruction) (current-buffer) 'text-davinci))

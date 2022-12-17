@@ -15,6 +15,15 @@
 
 (def api {:edit "https://api.openai.com/v1/edits" :completion "https://api.openai.com/v1/completions"})
 
+(defn get-models []
+  (curl/get
+   "https://api.openai.com/v1/models"
+   {:headers {"Content-Type" "application/json"
+              "Authorization" (str "Bearer " api-key)}}))
+
+(comment
+  (get-models)
+  *1)
 
 (defn openai-completion [{:keys [model temperature] :as opts}]
   (-> (curl/post (api :completion)
@@ -107,7 +116,6 @@
 (openai-completion
  {:model "code-cushman-001"
   :prompt "(ns Y2022.day16\n  (:require [clojure.string :as str]))\n\n;; graph\n;; nodes\n(defn dfs [])\n\n"})
-
 
 
 {"text" "\n;;; day16.clj ends here", "index" 0, "logprobs" nil, "finish_reason" "stop"}
