@@ -50,14 +50,30 @@ The default is `t`."
 (defvar openai-api-urls `(:edit "https://api.openai.com/v1/edits"
                           :completion "https://api.openai.com/v1/completions"))
 
+(defcustom openai-api-eval-spinner-type
+  ["·  " "·· " "···"]
+  "Appearance of the instruction edit spinner.
+
+See `spinner-types' variable."
+  :type '(choice (vector :tag "Custom")
+                 (symbol :tag "Predefined" :value 'vertical-breathing)
+                 (list :tag "List"))
+  :group 'openai-api)
+
+(defcustom openai-api-show-eval-spinner t
+  "When true, show the evaluation spinner in the mode line."
+  :type 'boolean
+  :group 'openai-api)
+
+(defcustom openai-api-eval-spinner-delay 1
+  "Amount of time, in seconds, after which the evaluation spinner will be shown."
+  :type 'integer
+  :group 'openai-api)
+
 (defconst openai-api-edit-buffer "*ai-instructions*"
   "Buffer to use for the openai edit instructions prompt")
 
-(defvar openai-api-edit-persistent-message t)
-
 (defvar-local openai-api-edit-target-buffer nil)
-
-;; (defvar-local openai-api-edit-response-buffer nil)
 
 (defvar openai-api-edit-instructions-history nil)
 
@@ -158,9 +174,9 @@ ENDPOINT is the API endpoint to use."
      ;;    completions))
      )))
 
+
 ;; (add-hook 'completion-at-point-functions #'openai-api-capf nil t)
 ;; (remove-hook 'completion-at-point-functions #'openai-api-capf  t)
-
 
 ;; make a consult one
 ;; with -- paradigm for temparature
@@ -230,55 +246,6 @@ Particularly good at translating natural language to code."
     (with-current-buffer openai-api-edit-target-buffer
       (goto-char (point-max))
       (insert s))))
-
-(defcustom cider-eval-spinner-type 'progress-bar
-  "Appearance of the evaluation spinner.
-
-Value is a symbol.  The possible values are the symbols in the
-`spinner-types' variable."
-  :type 'symbol
-  :group 'cider
-  :package-version '(cider . "0.10.0"))
-
-(defcustom cider-show-eval-spinner t
-  "When true, show the evaluation spinner in the mode line."
-  :type 'boolean
-  :group 'cider
-  :package-version '(cider . "0.10.0"))
-
-(defcustom cider-eval-spinner-delay 1
-  "Amount of time, in seconds, after which the evaluation spinner will be shown."
-  :type 'integer
-  :group 'cider
-  :package-version '(cider . "0.10.0"))
-
-(defun cider-spinner-start (buffer)
-  "Start the evaluation spinner in BUFFER.
-Do nothing if `cider-show-eval-spinner' is nil."
-  (when cider-show-eval-spinner
-    (with-current-buffer buffer
-      (spinner-start cider-eval-spinner-type nil
-                     cider-eval-spinner-delay))))
-
-(defcustom openai-api-eval-spinner-type
-  ["·  " "·· " "···"]
-  "Appearance of the instruction edit spinner.
-
-See `spinner-types' variable."
-  :type '(choice (vector :tag "Custom")
-                 (symbol :tag "Predefined" :value 'vertical-breathing)
-                 (list :tag "List"))
-  :group 'openai-api)
-
-(defcustom openai-api-show-eval-spinner t
-  "When true, show the evaluation spinner in the mode line."
-  :type 'boolean
-  :group 'openai-api)
-
-(defcustom openai-api-eval-spinner-delay 1
-  "Amount of time, in seconds, after which the evaluation spinner will be shown."
-  :type 'integer
-  :group 'openai-api)
 
 (defun openai-api-spinner-start (buffer)
   "Start the evaluation spinner in BUFFER.
