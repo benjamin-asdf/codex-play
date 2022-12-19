@@ -325,7 +325,6 @@ Answer:
 ;; Synapomorphy is a type of shared derived character or trait shared by two or more taxa. It is used in phylogenetic taxonomy to identify and describe the evolutionary relationships between organisms. Synapomorphy is a type of homology, which is a similarity between organisms that is derived from a common ancestor. This type of homology is used to reconstruct the evolutionary history of organisms and to identify the relationship between them. Synapomorphy was first proposed by German biologist Ernst Haeckel in 1866 and further developed by American biologist George Gaylord Simpson in 1944.
 
 (openai-api-fact-bot "The major taxa of insects are")
-
 "The major taxa of insects are:
 - Coleoptera (beetles)
 - Diptera (flies)
@@ -336,10 +335,10 @@ Answer:
 - Isoptera (termites)
 - Mantodea (mantids)"
 
-
 (openai-api-fact-bot "synapomorphy")
-"Synapomorphy is a type of shared derived character or trait that is shared by two or more taxa and is present in their common ancestor. It is used in cladistics to infer evolutionary relationships between organisms."
 
+
+"Synapomorphy is a type of shared derived character or trait that is shared by two or more taxa and is present in their common ancestor. It is used in cladistics to infer evolutionary relationships between organisms."
 ;; as it is with coding, so it is with prompting it seems
 ;; simpler stuff is better
 ;; also when it says names of scientists I feel like it is just making shit up at times.
@@ -385,10 +384,9 @@ Answer:
        (insert answer)))))
 
 (science-bot "synapomorphy")
+
 ;; synapomorphy
 ;; Synapomorphy is a type of shared derived character or trait that is shared by two or more taxa due to their common evolutionary history. It is a type of homology, which is a similarity between two or more organisms that is due to shared ancestry. Synapomorphies are used in phylogenetics to infer relationships between taxa and to construct phylogenetic trees. Synapomorphies can be morphological, anatomical, physiological, behavioral, or molecular. Examples of synapomorphies include the presence of feathers in birds, the presence of four limbs in tetrapods, and the presence of a four-chambered heart in mammals.
-
-
 (defun science-bot (question)
   (let ((input (format
                 "I am a science bot. I will give you scientifically sound answers.
@@ -443,6 +441,7 @@ Answer:
 
 (science-bot "cybernetics and models of intelligence")
 
+
 "cybernetics and models of intelligence
 Cybernetics is the study of systems and their control and communication. It is a broad field that encompasses many different topics, including models of intelligence. Models of intelligence are used to study and understand the cognitive processes of intelligent agents. These models typically include elements such as perception, learning, memory, decision-making, problem-solving, and communication. Cybernetic models of intelligence are often used to develop artificial intelligence systems and to understand the behavior of biological systems. See also: Artificial Intelligence, Machine Learning, Cognitive Science, Computational Neuroscience, Neural Networks, and Robotics."
 
@@ -456,3 +455,48 @@ Peripersonal space (PPS) representation is a neurological concept that describes
 ;; oh man that answer is so 15 years ago
 "Why do I feel like I become the car when I ride it
 This phenomenon is known as \"embodied cognition,\" which is the idea that the body can influence cognitive processes. Embodied cognition suggests that the physical act of riding a car can influence your perception and understanding of the experience. For example, when you ride a car, you may feel as if you become part of the car and that you are in control of it. This is because your body is physically connected to the car and you are using your body to control it. Embodied cognition suggests that this physical connection can influence the way you think and feel about the experience, making it feel more immersive and real. See also: Embodied Cognition, Motor Cognition, Action Representation, Perceptual Motor Coupling."
+
+(science-bot "How do animals feel in the winter?")
+
+
+
+(science-bot "Is there a fluid that doesn't feel wet?")
+
+
+"Is there a fluid that doesn't feel wet?
+Yes, there are fluids that do not feel wet. Superfluids, such as helium-3 and helium-4, are fluids that have zero viscosity and are able to flow without resistance. These fluids do not feel wet because they do not interact with surfaces in the same way that normal fluids do. Additionally, some oils, such as mineral oil, are very slow to evaporate and can remain on surfaces without feeling wet.
+See also: Viscosity: The resistance of a fluid to flow. Superfluids have zero viscosity and are able to flow without resistance. Evaporation: The process by which a liquid is converted into a gas. Oils are slow to evaporate and can remain on surfaces without feeling wet. Surface tension: The force that holds the surface of a liquid together. This force is responsible for the ability of liquids to form droplets."
+
+(science-bot "Explain quarks")
+
+(science-bot "What is strong force and weak force")
+(science-bot "Why are maxwell equations so great?")
+(science-bot "How many Maxwell's Equations?")
+(science-bot "Lisp was discovered?")
+
+
+(science-bot "How is toilett paper made")
+(science-bot "How is toilett paper packaged")
+(science-bot "How to memorize digits of pi")
+(science-bot "Axelrod and Hamilton")
+(science-bot "Theoretical evolution of altruism")
+
+;; I can make it agree with me lol
+(science-bot "Group selection, there is some nuance but in it's basic form it is bonkers")
+"Group selection, there is some nuance but in it's basic form it is bonkers
+Group selection is a controversial theory in evolutionary biology that suggests that natural selection can act on groups of organisms, rather than just individuals. This theory suggests that traits that benefit the group as a whole can be selected for, even if they are disadvantageous to individual members of the group. While there is some nuance to the theory, it is generally not accepted by evolutionary biologists as a valid explanation for the evolution of complex traits."
+
+;; oh nice it stays with the facts
+(science-bot "Group selection is really smart and explains a lot")
+"Group selection is really smart and explains a lot
+Group selection is a controversial concept in evolutionary biology, which suggests that natural selection can act on groups of organisms, rather than just on individual organisms. Group selection proposes that the fitness of a group of organisms can be increased by selecting for behaviors that are beneficial to the group as a whole, even if they are detrimental to the individual. While this concept has been debated for many years, some recent studies have provided evidence that group selection can occur in certain circumstances. However, the majority of evolutionary biologists still believe that natural selection primarily acts on individuals and that group selection is not an important evolutionary force. See also: Kin selection, Evolutionary game theory, Social evolution."
+
+(science-bot "Group selection, both sides")
+"Group selection, both sides
+Group selection is a controversial evolutionary theory that suggests that groups of organisms can evolve and be selected for, rather than individuals. This theory suggests that selection can act on groups of organisms, rather than only on individuals.
+
+Proponents of group selection argue that it can explain the evolution of altruism and cooperation, as well as the evolution of complex social behaviors. They suggest that selection can act on groups, leading to the evolution of behaviors that benefit the group and the species as a whole.
+
+Opponents of group selection argue that selection only acts on individuals and that any apparent group-level traits are simply the result of individual selection. They suggest that any cooperative behaviors are the result of individual selection, as individuals that cooperate may be more likely to survive and reproduce. They also argue that group selection cannot explain the evolution of complex traits and behaviors.
+
+See also: Kin selection, Altruism, Cooperation, Social behavior, Evolutionary theory."
