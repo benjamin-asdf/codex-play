@@ -9,6 +9,10 @@
    ,(let ((m (make-sparse-keymap)))
       (define-key m (kbd "e") #'openai-api-davinci-edit)
       (define-key m (kbd "t") #'openai-api-complete-text-small)
+      (define-key m (kbd "i") (defun mm/insert-todo ()
+                                (interactive)
+                                (insert "TODO: ")
+                                (comment-line 1)))
       m)))
 
 ;; (insert

@@ -1,0 +1,15 @@
+https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+
+1 token ~= 4 chars in English
+
+1 token ~= ¾ words
+
+100 tokens ~= 75 words
+
+Or
+
+1-2 sentence ~= 30 tokens
+
+1 paragraph ~= 100 tokens
+
+1,500 words ~= 2048 tokens

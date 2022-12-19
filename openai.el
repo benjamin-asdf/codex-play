@@ -79,7 +79,8 @@ See `spinner-types' variable."
     (text-davinci . "text-davinci-edit-001")))
 
 (defvar openai-api-completion-models
-  '((text-davinci . "text-davinci-003")))
+  '((text-davinci . "text-davinci-003")
+    (code-davinci . "code-davinci-002")))
 
 (defun openai-api-balance-parens (str)
   (let ((parens-count 0)
@@ -132,11 +133,15 @@ See `spinner-types' variable."
   (goto-char (point-min))
   (re-search-forward "\n\n")
   (let ((data (json-read)))
-    (cl-map
-     'list
-     (lambda (d)
-       (assoc-default 'text d))
-     (assoc-default 'choices data))))
+    (assoc-default 'choices data)))
+
+(defun openai-api-choices-text-1 (choices)
+  ""
+  (cl-map 'list (lambda (d) (assoc-default 'text d)) choices))
+
+(defun openai-api-choices-text ()
+  "Return a list of choices from the current buffer."
+  (openai-api-choices-text-1 (openai-api-choices)))
 
 (defun openai-api-retrieve (data cb &optional cbargs endpoint)
   "Retrieve DATA from the openai API.
@@ -201,7 +206,7 @@ ENDPOINT is the API endpoint to use."
    for strat in strategies
    append (with-current-buffer (openai-api-retrieve-sync strat)
             ;; (pop-to-buffer (current-buffer))
-            (mapcar openai-api-balance-parens-fn (openai-api-choices)))))
+            (mapcar openai-api-balance-parens-fn (openai-api-choices-text)))))
 
 
 ;; how many chars should be cutoff
@@ -236,7 +241,7 @@ ENDPOINT is the API endpoint to use."
         (mapcar openai-api-balance-parens-fn
                 (mapcan
                  #'opanai-api-split-words
-                 (openai-api-choices))))))))
+                 (openai-api-choices-text))))))))
 
 (defun openai-api-buffer-backwards-dwim ()
   (if
@@ -294,19 +299,25 @@ ENDPOINT is the API endpoint to use."
          openai-api-balance-parens-fn
          (cl-remove-duplicates  (mapcan
                                  (lambda (s) (split-string s "\n\n"))
-                                 (openai-api-choices)))))))))
+                                 (openai-api-choices-text)))))))))
 
 (defun openai-api-complete-code-thoroughly ()
-  "Ask openai for completions.
-The model is quote:
-The Most capable Codex model.
-Particularly good at translating natural language to code."
   (interactive)
   (openai-api-completion-completing-read-1
    `((model .  "code-davinci-002")
      (max_tokens . ,(* 4 256))
      (temperature . 0)
      (prompt . ,(openai-api-buffer-backwards)))))
+
+(defun openai-api-complete-code-thoroughly ()
+  "Complete code using OpenAI API."
+  (interactive)
+  (let ((prompt (openai-api-buffer-backwards)))
+    (openai-api-completion-completing-read-1
+     `((model .  "code-davinci-002")
+       (max_tokens . ,(* 4 256))
+       (temperature . 0)
+       (prompt . ,prompt)))))
 
 (defun openai-api-edit-response-finnish ()
   "Finish editing and insert response into the target buffer."
@@ -367,7 +378,8 @@ The response is displayed in a buffer named
                     (current-buffer)
                     ;; (get-buffer-create (read-buffer "Target: "))
                     )))
-  (let* ((model (assoc-default
+  (let* ((mode (with-current-buffer target-buffer major-mode))
+         (model (assoc-default
                  (or model 'code-davinci)
                  openai-api-edit-models))
          (called-from-resp-buffer (openai-api-edit-resp-buffer-p
@@ -376,13 +388,24 @@ The response is displayed in a buffer named
                              (current-buffer))
                             (t
                              (generate-new-buffer (concat "*openai-edit-" (buffer-name target-buffer) "*")))))
-         ;; maybe to do a region select thing
-         ;; assume user knows how to narrow region
-         (input (with-current-buffer
-                    (if called-from-resp-buffer
-                        (current-buffer)
-                      target-buffer)
-                  (buffer-string))))
+         (input
+          (with-temp-buffer
+            ;; this is a guess that the model performs better
+            ;; if we say what language
+            ;; hard to say if it is better, you might get elisp
+            ;; but that is actually kinda quality code
+            (insert (format ";; %s\n" mode))
+            (insert
+             (with-current-buffer
+                 (if called-from-resp-buffer
+                     resp-buffer
+                   target-buffer)
+               (buffer-string)))
+            ;; I am considerig putting <file> ends here but always?
+            (buffer-string))))
+    ;; not sure such a thing somewhere
+    ;; (when (< 3000 (length input
+    ;;          (message "Your input is large, consider narrowing your buffer.")))
     (with-current-buffer resp-buffer
       (openai-api-spinner-start resp-buffer)
       (pop-to-buffer (current-buffer))
@@ -400,7 +423,7 @@ The response is displayed in a buffer named
                    (error
                     "Error when sending edit instructions: %s"
                     (plist-get state :error-message)))
-               (let ((response (openai-api-choices)))
+               (let ((response (openai-api-choices-text)))
                  (with-current-buffer
                      resp-buffer
                    (let ((inhibit-read-only t))
@@ -410,10 +433,7 @@ The response is displayed in a buffer named
                                openai-api-balance-parens-fn
                                response))
                        (insert choice))
-                     (funcall
-                      (with-current-buffer
-                          target-buffer
-                        major-mode)))
+                     (funcall mode))
                    (setf openai-api-edit-target-buffer target-buffer)
                    (pop-to-buffer (current-buffer)))))
            (with-current-buffer
@@ -428,3 +448,106 @@ The response is displayed in a buffer named
   (interactive)
   (openai-api-davinci-edit
    (openai-api-read-instruction) (current-buffer) 'text-davinci))
+
+
+;; https://beta.openai.com/examples/default-time-complexity
+;; see examples/time-complexity.el
+;; the input should be a function with the index and the prompt as args I suppose
+;; or allow both, list and function that returns list
+(defvar openai-api-explain-data-list
+  '(("The time complexity of this function is: "
+     .
+     (((model . "text-davinci-003")
+       (top_p . 1)
+       (max_tokens . 64)
+       (temperature . 0)
+       ;; (stop . ["\n"])
+       )))
+    ("This code can be improved in the following ways:"
+     .
+     (((model . "text-davinci-003")
+       (max_tokens . 256)
+       (temperature . 0.8))))
+    ("Does this code make sense?"
+     .
+     (((model . "text-davinci-003")
+       (max_tokens . 256)
+       (temperature . 0.8)))))
+  "Define prompts and req data for `openai-api-explain-region`.
+You can provide a list of input data, then you get multiple output.
+You could for example try with increasing temperature.")
+
+(defun openai-api-explain-api-input (prompt input)
+  "Return the API input for PROMPT and INPUT."
+  (let ((api-input
+         (or
+          (assoc-default prompt openai-api-explain-data-list)
+          (list
+           '((model . "text-davinci-003")
+            (max_tokens . 256)
+            (temperature . 0.8))))))
+    (mapcar (lambda (lst) (cons `(prompt . ,input) lst)) api-input)))
+
+(defun openai-api-explain-region (&optional beg end)
+  "Explain the code in the region.
+You do not need to put a matching prompt, free form will ask text-davinci-003."
+  (interactive "r")
+  (let* ((mode major-mode)
+         (prompt (completing-read "AI prompt: " (mapcar #'car openai-api-explain-data-list)))
+         (input (buffer-substring beg end))
+         (input (with-temp-buffer
+                  (insert (format ";; %s\n" mode))
+                  (insert (format "%s\n%s" input prompt))
+                  (funcall mode)
+                  (comment-region (point-at-bol) (point-at-eol))
+                  (buffer-string)))
+         (api-input (openai-api-explain-api-input prompt input)))
+    (with-current-buffer-window
+        (concat "output-"
+                (substring prompt 0 (min 10 (length prompt))))
+        nil
+        nil
+      (cl-loop for res in (openai-api-sync api-input) do (insert res)))))
+
+
+
+(defun openai-api-fact-bot (&optional question)
+  (interactive "sQuestion: ")
+  (let  ((input (format
+                 "
+I am a highly intelligent question answering bot.
+
+Q: What is human life expectancy in the United States?
+A: Human life expectancy in the United States is 78 years.
+
+Q: Who was president of the United States in 1955?
+A: Dwight D. Eisenhower was president of the United States in 1955.
+
+Q: Which party did he belong to?
+A: He belonged to the Republican Party.
+
+Q: How does a telescope work?
+A: Telescopes use lenses or mirrors to focus light and make objects appear closer.
+
+Q: Where were the 1992 Olympics held?
+A: The 1992 Olympics were held in Barcelona, Spain.
+
+Q: %s
+A:
+
+" question)))
+    (message "%s"
+             (car (openai-api-sync
+                   (list
+                    `((model . "text-davinci-003")
+                      (prompt . ,input)
+                      (top_p . 1)
+                      (max_tokens . 100)
+                      (temperature . 0)
+                      (presence_penalty . 0)
+                      ;; (stop . ["\n"])
+                      )))))))
+
+;; lol I like this
+;; What is the square root of banana?
+;; The square root of banana is not a real number.

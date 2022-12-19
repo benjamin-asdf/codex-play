@@ -25,7 +25,7 @@ A: The 1992 Olympics were held in Barcelona, Spain.
 Q: How many squigs are in a bonk?
 A: Unknown
 
-Q: Where is the Valley of Kings?
+Q: How many cells does a leaf have?
 A:
 
 "))
@@ -102,7 +102,7 @@ Response: The Complete Guide to Magical Creatures: A Comprehensive Reference for
 Prompt: I am interested in learning about the ethical implications of magic.
 Response: The Moral Almanac of Magic: A Compendium of Ethical Dilemmas and Solutions for Practitioners of the Arcane Arts
 
-Prompt: I need to know about modern magical quantum theory.
+Prompt: I need a book about computer magic
 Response:
 "))
 
@@ -116,4 +116,5 @@ Response:
       (presence_penalty . 0)
       (stop . ["\n"])))))
 
-'("Quantum Magic: Exploring the Intersection of Quantum Mechanics and Magic Theory")
+
+'("Computer Magic: A Guide to Programming and Algorithmic Magic for the Digital Age")
