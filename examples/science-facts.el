@@ -500,3 +500,6 @@ Proponents of group selection argue that it can explain the evolution of altruis
 Opponents of group selection argue that selection only acts on individuals and that any apparent group-level traits are simply the result of individual selection. They suggest that any cooperative behaviors are the result of individual selection, as individuals that cooperate may be more likely to survive and reproduce. They also argue that group selection cannot explain the evolution of complex traits and behaviors.
 
 See also: Kin selection, Altruism, Cooperation, Social behavior, Evolutionary theory."
+
+
+(science-bot (car (question-bot)))

@@ -4,11 +4,13 @@
              (process-lines "gpg" "--decrypt" "token.gpg")))
           (string-trim (shell-command-to-string "pass ben-open-ai"))))
 
+
 (meow-leader-define-key
  `("." .
    ,(let ((m (make-sparse-keymap)))
       (define-key m (kbd "e") #'openai-api-davinci-edit)
       (define-key m (kbd "t") #'openai-api-complete-text-small)
+      (define-key m (kbd "l") #'openai-api-explain-region)
       (define-key m (kbd "i") (defun mm/insert-todo ()
                                 (interactive)
                                 (insert "TODO: ")

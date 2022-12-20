@@ -185,37 +185,12 @@ ENDPOINT is the API endpoint to use."
        (url-request-data (json-encode data)))
     (url-retrieve-synchronously endpoint)))
 
-
-;; each stragie is a function of input ->
-;; list of requests to make
-
-;; (defvar openai-api-stragies
-;;   `((cushman-small .
-;;                    (lambda (params)
-;;                      (list
-;;                       `((model . "code-cushman-001")
-;;                         (max_tokens . 14)
-;;                         (temperature . 0)
-;;                         (prompt . ,(plist-get parms :input)))))))
-;;   )
-
-;; sync.. ?
-
 (defun openai-api-sync (strategies)
   (cl-loop
    for strat in strategies
    append (with-current-buffer (openai-api-retrieve-sync strat)
             ;; (pop-to-buffer (current-buffer))
             (mapcar openai-api-balance-parens-fn (openai-api-choices-text)))))
-
-
-;; how many chars should be cutoff
-;; how often do we ask
-;; separate commands for different use cases
-
-
-;; retry 3-5 times
-;; take the ones with "stop"
 
 (defun openai-api-completions ()
   "Try to use a fast model for completions of smaller size."
@@ -375,9 +350,7 @@ The response is displayed in a buffer named
   (interactive (list
                 (openai-api-read-instruction)
                 (or openai-api-edit-target-buffer
-                    (current-buffer)
-                    ;; (get-buffer-create (read-buffer "Target: "))
-                    )))
+                    (current-buffer))))
   (let* ((mode (with-current-buffer target-buffer major-mode))
          (model (assoc-default
                  (or model 'code-davinci)
@@ -443,50 +416,61 @@ The response is displayed in a buffer named
        nil
        :edit))))
 
+(defun openai-api-cleanup-resp-buffers ()
+  (cl-loop for buffer in (buffer-list)
+           when (openai-api-edit-resp-buffer-p buffer)
+           do (kill-buffer buffer)))
+
 (defun openai-api-edit-text ()
   "Use davinci for edit."
   (interactive)
   (openai-api-davinci-edit
    (openai-api-read-instruction) (current-buffer) 'text-davinci))
 
-
 ;; https://beta.openai.com/examples/default-time-complexity
 ;; see examples/time-complexity.el
-;; the input should be a function with the index and the prompt as args I suppose
-;; or allow both, list and function that returns list
 (defvar openai-api-explain-data-list
   '(("The time complexity of this function is: "
      .
      (((model . "text-davinci-003")
        (top_p . 1)
        (max_tokens . 64)
-       (temperature . 0)
-       ;; (stop . ["\n"])
-       )))
+       (temperature . 0))))
+    ;; this one works well when you select a single function
+    ;; buildin or from a lib
+    ("What does this do?"
+     .
+     (((model . "text-davinci-003")
+       (top_p . 1)
+       (max_tokens . 64)
+       (temperature . 0))))
     ("This code can be improved in the following ways:"
      .
      (((model . "text-davinci-003")
-       (max_tokens . 256)
+       (max_tokens . 64)
        (temperature . 0.8))))
     ("Does this code make sense?"
      .
      (((model . "text-davinci-003")
-       (max_tokens . 256)
+       (max_tokens . 64)
        (temperature . 0.8)))))
   "Define prompts and req data for `openai-api-explain-region`.
 You can provide a list of input data, then you get multiple output.
-You could for example try with increasing temperature.")
+You could for example try with increasing temperature.
+The value is allowed to be a function of input to request list.")
 
 (defun openai-api-explain-api-input (prompt input)
   "Return the API input for PROMPT and INPUT."
   (let ((api-input
-         (or
-          (assoc-default prompt openai-api-explain-data-list)
-          (list
-           '((model . "text-davinci-003")
-            (max_tokens . 256)
-            (temperature . 0.8))))))
-    (mapcar (lambda (lst) (cons `(prompt . ,input) lst)) api-input)))
+          (or
+           (assoc-default prompt openai-api-explain-data-list)
+           (list
+            '((model . "text-davinci-003")
+              (max_tokens . 256)
+              (temperature . 0.8))))))
+    (if (functionp api-input)
+        (funcall api-input input)
+      (mapcar (lambda (lst) (cons `(prompt . ,input) lst)) api-input))))
 
 (defun openai-api-explain-region (&optional beg end)
   "Explain the code in the region.
@@ -507,11 +491,11 @@ You do not need to put a matching prompt, free form will ask text-davinci-003."
                 (substring prompt 0 (min 10 (length prompt))))
         nil
         nil
-      (cl-loop for res in (openai-api-sync api-input) do (insert res)))))
-
-
+      (cl-loop for res in (openai-api-sync api-input) do (insert (string-trim res))))))
 
 (defun openai-api-fact-bot (&optional question)
+  "What is the square root of banana?
+The square root of banana is not a real number."
   (interactive "sQuestion: ")
   (let  ((input (format
                  "
@@ -545,9 +529,4 @@ A:
                       (max_tokens . 100)
                       (temperature . 0)
                       (presence_penalty . 0)
-                      ;; (stop . ["\n"])
-                      )))))))
-
-;; lol I like this
-;; What is the square root of banana?
-;; The square root of banana is not a real number.
+                      (stop . ["\n"]))))))))

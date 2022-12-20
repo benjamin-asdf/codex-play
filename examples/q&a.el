@@ -40,9 +40,6 @@ A:
       (presence_penalty . 0)
       (stop . ["\n"])))))
 '("The Valley of Kings is located in Luxor, Egypt.")
-
-
-
 (let  ((input "
 I am a highly intelligent magic book shelve. I will respond with titles of magic books.
 
@@ -77,10 +74,11 @@ Prompt: Can you make me tea?
       (presence_penalty . 0)
       (stop . ["\n"])))))
 
+
+
 ;; Got nothing with temp 0, with temp 0.9 you start getting a feel for what prompt they put into chat-gpt
+
 '("Respone: Sorry, I can only suggest books related to magic.")
-
-
 (let  ((input "
 I am a highly intelligent magic book shelve. I will respond with titles of magic books.
 
@@ -115,6 +113,4 @@ Response:
       (temperature . 0)
       (presence_penalty . 0)
       (stop . ["\n"])))))
-
-
 '("Computer Magic: A Guide to Programming and Algorithmic Magic for the Digital Age")
