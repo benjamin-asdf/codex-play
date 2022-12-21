@@ -1,3 +1,4 @@
+(error "Dont eval the file, but form by form")
 
 ;; I am actually not sure if that answer is correct about fisher
 
@@ -501,5 +502,5 @@ Opponents of group selection argue that selection only acts on individuals and t
 
 See also: Kin selection, Altruism, Cooperation, Social behavior, Evolutionary theory."
 
-
+;; question bot is a bit lame rn
 (science-bot (car (question-bot)))
