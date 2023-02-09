@@ -1,3 +1,5 @@
+*NOTE* for a full emacs package see [[https://github.com/benjamin-asdf/openai-api.el][here]].
+
 I hope we get a FOSS code gen api soon.
 I was impressed by the state of openai text and codegen, I want this
 in emacs.
